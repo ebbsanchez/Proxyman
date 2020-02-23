@@ -5,19 +5,21 @@ import json
 
 logging.basicConfig(level=logging.DEBUG)
 
+
 class ProxyCollector:
     def __init__(self, filename, dont_init=False):
-        self.filename = filename+ '.pkl'
+        self.filename = filename + '.pkl'
         self.proxies = {
-                "help":"This is a dict saving me['proxies']['ip:port'/'status'/'status_for_projects']. ",
-                "proxies": []
-            }
-        
+            "help": "This is a dict saving me['proxies']['ip:port'/'status'/'status_for_projects']. ",
+            "proxies": []
+        }
+
         if dont_init:
-            logging.warning(' Not init pickle. Will get clean `self.proxies` and it might overwrite the old pickle. Make sure you are using clean pickle file for testing.')
+            logging.warning(
+                ' Not init pickle. Will get clean `self.proxies` and it might overwrite the old pickle. Make sure you are using clean pickle file for testing.')
         else:
             self.init_pickle()
-    
+
     def init_pickle(self):
         logging.info(" init pickle (will load self.proxies)")
         try:
@@ -37,11 +39,11 @@ class ProxyCollector:
                 'http': proxy,
                 'https': proxy,
             }
-        req = requests.get('https://api.ipify.org?format=json',proxies=proxy)
+        req = requests.get('https://api.ipify.org?format=json', proxies=proxy)
         req_json = json.loads(req.text)
         logging.debug("My {} is: {}".format('IP', req_json['ip']))
         return req_json['ip']
-    
+
     def format_proxy_with_http(self, proxy):
         if proxy.startswith('http://'):
             return proxy
@@ -55,22 +57,25 @@ class ProxyCollector:
                 ip = self.get_my_ip(proxy=proxy)
                 logging.info(' Proxy worked. IP: {}'.format(ip))
                 self.add_proxy(proxy, status='alive')
-            except requests.exceptions.ProxyError as e :
+            except requests.exceptions.ProxyError as e:
                 logging.info(' {} proxy not working...'.format(proxy))
+            except requests.exceptions.InvalidProxyURL as e:
+            	logging.info("Not a valid proxy url. Assume is the end of file.")
+            	pass
         return
 
-
     def add_proxy(self, proxy, status="unknown", status_for_projects="unknown", save_pickle=True):
-        
+
         if not any([proxy == p['ip:port'] for p in self.proxies['proxies']]):
             proxy = {
                 'ip:port': proxy,
                 'status': status,
-                'status_for_projects': status_for_projects    
+                'status_for_projects': status_for_projects
             }
             self.proxies['proxies'].append(proxy)
         else:
-            proxy = next(prox for prox in self.proxies['proxies'] if prox['ip:port'] == proxy)
+            proxy = next(
+                prox for prox in self.proxies['proxies'] if prox['ip:port'] == proxy)
             proxy['status'] = status
             proxy['status_for_projects'] = status_for_projects
 
@@ -92,6 +97,7 @@ class ProxyCollector:
         except FileNotFoundError as e:
             logging.debug(e)
             print("[*] {} not found. must be a new file? There is nothing to print.")
+
     def return_alive_proxy(self, test=False):
         # TODO: Test proxies before return.
         alive_proxies = []
@@ -100,12 +106,9 @@ class ProxyCollector:
                 alive_proxies.append(proxy)
         return alive_proxies
 
-        
+
 if __name__ == '__main__':
     proxyman = ProxyCollector(filename='testing')
     print('IP: {}'.format(proxyman.get_my_ip()))
-    proxyman.print_proxy_in_pickle()
+    proxyman.return_alive_proxy()
     # proxyman.collect_raw_proxy(url="https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt")
-    
-
-
