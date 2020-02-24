@@ -117,25 +117,8 @@ class ProxyCollector:
                 alive_proxies.append(proxy)
         return alive_proxies
 
-    def return_proxies(self, limit=1, status="", status_for_projects=""):
-        # TODO: Add 'updated_time' filter
-        if status != "":
-            result_df = self.proxies_df.loc[self.proxies_df['status']==status]
-        else:
-            result_df = self.proxies_df.loc[self.proxies_df['status']=="alive"]
-
-        if status_for_projects != "":
-            result_df = result_df.loc[result_df["status_for_projects"]==status_for_projects]
-
-        result_series = result_df.sample(n=limit)['ip:port']
-        result_list = result_series.to_list()
-        return result_list
-
-def quickset():
-    proxyman = ProxyCollector(filename='proxies')
-    return proxyman
-
-
+    def return_proxies(limit=1, status="alive", status_for_projects="", updated_time=""):
+        pass
 
 if __name__ == '__main__':
     proxyman = ProxyCollector(filename='proxies')
