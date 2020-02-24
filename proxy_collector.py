@@ -1,6 +1,5 @@
 import requests
 import pandas as pd
-import pickle
 import logging
 import json
 from datetime import datetime
@@ -123,5 +122,5 @@ if __name__ == '__main__':
     print('IP: {}'.format(proxyman.get_my_ip()))
     proxyman.add_proxy("170.81.35.26:36681")
     # proxyman.print_proxy_in_file()
-    a = proxyman.return_alive_proxy_series_list()
+    # a = proxyman.return_alive_proxy_series_list()
     # proxyman.collect_raw_proxy(url="https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt")
