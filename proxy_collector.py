@@ -4,8 +4,6 @@ import logging
 import json
 from datetime import datetime
 
-logging.basicConfig(level=logging.INFO)
-
 
 class ProxyCollector:
     def __init__(self, filename, dont_init=False):
@@ -86,23 +84,47 @@ class ProxyCollector:
         else:
             logging.info("[Add Proxy] Knowned proxy. Updated.")
             if status == "":
-                status = self.proxies_df.loc[self.proxies_df['ip:port'] == proxy, "status"].item()
+                status_series = self.proxies_df.loc[self.proxies_df['ip:port'] == proxy, "status"]
+                try:
+                    status = status_series.item()
+                except ValueError as e:
+                    if len(status_series) > 1:
+                        self.clean_duplicated_proxy(proxy)
+                        logging.warning("[!!!]Find Duplicated proxy.. cleaning duplicated.. but somewhere must to get fixed.")
+                        status_series = self.proxies_df.loc[self.proxies_df['ip:port'] == proxy, "status"]
+                        status = status_series.item()
+                    else:
+                        raise ValueError
+
             if status_for_projects == "":
-                status_for_projects = self.proxies_df.loc[self.proxies_df['ip:port'] == proxy, "status_for_projects"].item()
-            self.proxies_df.loc[self.proxies_df['ip:port'] == proxy, ["status", "status_for_projects", "updated_time"]] = [status, status_for_projects, now_time]
+                status_for_projects_series = self.proxies_df.loc[self.proxies_df['ip:port'] == proxy, "status_for_projects"]
+                try:
+                    status_for_projects = status_for_projects_series.item()
+                except ValueError as e:
+                    if len(status_for_projects_series) > 1:
+                        self.clean_duplicated_proxy(proxy)
+                        logging.warning("[!!!]Find Duplicated proxy.. cleaning duplicated.. but somewhere must to get fixed.")
+                        status_for_projects_series = self.proxies_df.loc[self.proxies_df['ip:port'] == proxy, "status_for_projects"]
+                        status_for_projects = status_for_projects_series.item()
+                    else:
+                        raise ValueError
+
+            self.proxies_df.loc[self.proxies_df['ip:port'] == proxy, [
+                "status", "status_for_projects", "updated_time"]] = [status, status_for_projects, now_time]
 
         if save == True:
             with open(self.filename, 'w') as f:
                 self.proxies_df.to_csv(f, index=False)
             logging.debug(" Add proxy and SAVED to {}.".format(self.filename))
         else:
-            logging.debug(" Add proxy but NOT SAVING to {}.".format(self.filename))
+            logging.debug(
+                " Add proxy but NOT SAVING to {}.".format(self.filename))
 
     def print_proxy_in_file(self):
         try:
             with open(self.filename, 'rb') as f:
                 self.proxies_df = pd.read_csv(f)
-            for index,proxy in self.proxies_df.iterrows():
+            for index, proxy in self.proxies_df.iterrows():
                 print("[*] {} is {}".format(proxy['ip:port'], proxy['status']))
 
         except FileNotFoundError as e:
@@ -119,25 +141,35 @@ class ProxyCollector:
 
     def return_proxies(self, limit=1, status="", status_for_projects=""):
         # TODO: Add 'updated_time' filter
+        # QUIESTION: What if there is no proxy in DB?
+        # TODO: Notify user if there is no proxy.
         if status != "":
-            result_df = self.proxies_df.loc[self.proxies_df['status']==status]
+            result_df = self.proxies_df.loc[self.proxies_df['status'] == status]
         else:
-            result_df = self.proxies_df.loc[self.proxies_df['status']=="alive"]
+            result_df = self.proxies_df.loc[self.proxies_df['status'] == "alive"]
 
         if status_for_projects != "":
-            result_df = result_df.loc[result_df["status_for_projects"]==status_for_projects]
+            result_df = result_df.loc[result_df["status_for_projects"]
+                                      == status_for_projects]
 
         result_series = result_df.sample(n=limit)['ip:port']
         result_list = result_series.to_list()
         return result_list
+
+    def clean_duplicated_proxy(self, proxy):  # For bug fixing
+        to_delete_df = self.proxies_df.loc[self.proxies_df['ip:port'] == proxy]
+        to_delete_df = to_delete_df.sample()
+        self.proxies_df = self.proxies_df.drop(to_delete_df.index[0])
+        return
+
 
 def quickset():
     proxyman = ProxyCollector(filename='proxies')
     return proxyman
 
 
-
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     proxyman = ProxyCollector(filename='proxies')
     print('IP: {}'.format(proxyman.get_my_ip()))
     # proxyman.add_proxy("170.81.35.26:36681")
